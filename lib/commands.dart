@@ -1,0 +1,1 @@
+enum Command { start, follow, unfollow, projects, projectInfo }
