@@ -8,8 +8,9 @@ import 'extensions/teledart_msg_ext.dart';
 class Bot {
   Bot._();
   late final TeleDart _teledart;
+  static Bot? _instance;
 
-  static Future<Bot> _newInstance() async {
+  static Future<Bot> get _newInstance async {
     final instance = Bot._();
     final username = (await Telegram(botToken).getMe()).username!;
     instance._teledart = TeleDart(botToken, Event(username));
@@ -56,5 +57,5 @@ class Bot {
         .listen((message) => message.sendUnknownCommand());
   }
 
-  static Future<void> start() async => await _newInstance();
+  static Future<void> start() async => _instance ??= await _newInstance;
 }
