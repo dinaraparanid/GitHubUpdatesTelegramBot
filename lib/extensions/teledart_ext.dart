@@ -17,15 +17,21 @@ extension TeleDartExt on TeleDart {
     );
 
     (await FollowersDao.instance)
-        .addNewUser(Follower(message.from!.id));
+        .addNewUserOrIgnore(Follower(message.from!.id));
   }
 
-  Future<Follower?> startFollowing(final TeleDartMessage message) async {
-    final devUrl = message.text!.removeFirst('/follow').trim();
+  Future<int?> _getDevIdOrSendError(
+      final TeleDartMessage message,
+      {
+        required final String command,
+        required final String patter
+      }
+  ) async {
+    final devUrl = message.text!.removeFirst('/$command').trim();
 
     if (devUrl.isEmpty) {
       message.reply(
-          'Incorrect input. Please, use this pattern: /follow https://github.com/dinaraparanid'
+          'Incorrect input. Please, use this pattern: $patter'
       );
 
       return null;
@@ -35,14 +41,46 @@ extension TeleDartExt on TeleDart {
 
     if (devId == null) {
       message.reply("Developer is not found. Please, try again...");
+    }
+
+    return devId;
+  }
+
+  Future<Follower?> startFollowing(final TeleDartMessage message) async {
+    final devId = await _getDevIdOrSendError(
+        message,
+        command: 'follow',
+        patter: '/follow https://github.com/dinaraparanid'
+    );
+
+    if (devId == null) {
       return null;
     }
 
     final followerId = message.from!.id;
-    final follower =  (await FollowersDao.instance)
+    final follower = (await FollowersDao.instance)
         .startFollowing(followerId, Developer(devId));
 
-    message.reply('Success!');
+    message.reply(follower == null ? 'You are already following this dev' : 'Success!');
+    return follower;
+  }
+
+  Future<Follower?> unfollow(final TeleDartMessage message) async {
+    final devId = await _getDevIdOrSendError(
+        message,
+        command: 'unfollow',
+        patter: '/unfollow https://github.com/dinaraparanid'
+    );
+
+    if (devId == null) {
+      return null;
+    }
+
+    final followerId = message.from!.id;
+    final oldFollower = Follower(followerId, devId);
+    final follower = (await FollowersDao.instance).unfollow(oldFollower);
+
+    message.reply(follower == null ? 'You are not following this dev' : 'Stopped following');
     return follower;
   }
 }

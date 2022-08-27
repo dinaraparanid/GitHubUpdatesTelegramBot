@@ -30,7 +30,7 @@ class Bot {
 
     _teledart
         .onCommand('unfollow')
-        .listen((message) => message.sendTODO()); // TODO: unfollow the dev
+        .listen(_teledart.unfollow);
 
     _teledart
         .onCommand('projects')

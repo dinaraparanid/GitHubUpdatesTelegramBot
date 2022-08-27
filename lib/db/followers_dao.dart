@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:git_hub_update_telegram_bot/extensions/all_ext.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '/db/developer.dart';
@@ -38,53 +39,86 @@ class FollowersDao {
   static Future<FollowersDao> get instance async =>
       _instance ??= await _newInstance;
 
-  bool isUserExists(final Follower user) =>
+  bool _isUserExists(final int userId) =>
       _database
           .select(
             'SELECT telegram_id FROM $_followersTableName WHERE telegram_id = ?',
-            [user.telegramId]
+            [userId]
           )
           .isNotEmpty;
 
-  void addNewUser(final Follower user) =>
+  bool _isFollowerExists(final Follower follower) =>
+      _database
+          .select(
+            'SELECT telegram_id FROM $_followersTableName WHERE telegram_id = ? AND following_dev_id = ?',
+            [follower.telegramId, follower.followingDevId]
+          )
+          .isNotEmpty;
+
+  Follower? _deleteNullFollower(final int followerId) {
+    if (_isUserExists(followerId)) {
+      _database.execute(
+          'DELETE FROM $_followersTableName WHERE telegram_id = ? AND following_dev_id IS NULL',
+          [followerId]
+      );
+      return Follower(followerId, null);
+    } else {
+      return null;
+    }
+  }
+
+  bool addNewUserOrIgnore(final Follower user, { final bool isNullFollowerDelete = true }) {
+    if (isNullFollowerDelete) {
+      _deleteNullFollower(user.telegramId);
+    }
+
+    if (!_isFollowerExists(user)) {
       _database.execute(
           'INSERT INTO $_followersTableName (telegram_id, following_dev_id) VALUES (?, ?)',
-          [user.telegramId, null]
+          [user.telegramId, user.followingDevId]
       );
 
-  void addNewDevOrIgnore(final Developer dev) =>
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  void addNewDevOrIgnore(final Developer dev) {
+    try {
       _database.execute(
           'INSERT INTO $_devsTableName (id) VALUES (?)',
           [dev.id]
       );
-
-  void loginUser(final Follower user) {
-    if (!(isUserExists(user))) {
-      addNewUser(user);
+    } catch(ignored) {
+      // already exists
     }
   }
 
-  Follower startFollowing(
+  void loginUser(final Follower user) {
+    if (!(_isUserExists(user.telegramId))) {
+      addNewUserOrIgnore(user);
+    }
+  }
+
+  Follower? startFollowing(
       final int followerTelegramId,
       final Developer dev
   ) {
     addNewDevOrIgnore(dev);
-
-    _database.execute(
-        'INSERT INTO $_followersTableName (telegram_id, following_dev_id) VALUES (?, ?)',
-        [followerTelegramId, dev.id]
-    );
-
-    return Follower(followerTelegramId, dev.id);
+    return Follower(followerTelegramId, dev.id).takeIf(addNewUserOrIgnore);
   }
 
-  Follower unfollow(final Follower follower) {
-    _database.execute(
-        'DELETE FROM $_followersTableName WHERE telegram_id = ? AND following_dev_id = ?',
-        [follower.telegramId, follower.followingDevId]
-    );
-
-    return Follower(follower.telegramId, null);
+  Follower? unfollow(final Follower follower) {
+    if (_isFollowerExists(follower)) {
+      _database.execute(
+          'DELETE FROM $_followersTableName WHERE telegram_id = ? AND following_dev_id = ?',
+          [follower.telegramId, follower.followingDevId.also(print)]
+      );
+      return Follower(follower.telegramId, null);
+    } else {
+      return null;
+    }
   }
 }
 

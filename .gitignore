@@ -6,3 +6,4 @@
 build/
 
 lib/constants.dart
+followers.db
