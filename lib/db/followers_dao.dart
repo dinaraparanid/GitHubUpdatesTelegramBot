@@ -1,75 +1,87 @@
-import 'package:git_hub_update_telegram_bot/db/developer.dart';
-import 'package:git_hub_update_telegram_bot/db/follower.dart';
-import 'package:git_hub_update_telegram_bot/extensions/all_ext.dart';
-import 'package:sqflite/sqflite.dart';
+import 'dart:io';
+
+import 'package:sqlite3/sqlite3.dart';
+
+import '/db/developer.dart';
+import '/db/follower.dart';
+
+const _databaseName = 'followers.db';
+const _devsTableName = 'Developers';
+const _followersTableName = 'Followers';
 
 class FollowersDao {
   FollowersDao._();
-
-  static const _databaseName = 'followers.db';
-  static const _followersTableName = 'FOLLOWERS';
-  static const _devsTableName = 'DEVELOPERS';
 
   static FollowersDao? _instance;
   late final Database _database;
   late final int _version;
 
-  static Future<FollowersDao> get _newInstance async =>
-      FollowersDao._().also((dao) async =>
-        dao._database = await openDatabase(
-            _databaseName,
-            onCreate: (db, i) async {
-              dao._version = i;
-              await db.initDB();
-            }
-        )
+  static Future<FollowersDao> get _newInstance async {
+    final instance = FollowersDao._();
+    final dbFile = File(_databaseName);
+
+    final isDbExists = await dbFile.exists();
+
+    if (!isDbExists) {
+      await dbFile.create();
+    }
+
+    instance._database = sqlite3.open(_databaseName);
+
+    if (!isDbExists) {
+      instance._database.initDB();
+    }
+
+    return instance;
+  }
+
+  static Future<FollowersDao> get instance async =>
+      _instance ??= await _newInstance;
+
+  bool isUserExists(final Follower user) =>
+      _database
+          .select(
+            'SELECT telegram_id FROM $_followersTableName WHERE telegram_id = ?',
+            [user.telegramId]
+          )
+          .isNotEmpty;
+
+  void addNewUser(final Follower user) =>
+      _database.execute(
+          'INSERT INTO $_followersTableName (telegram_id, following_dev_id) VALUES (?, ?)',
+          [user.telegramId, null]
       );
 
-  static get instance async => _instance ??= await _newInstance;
-
-  Future<bool> isUserExists(final Follower user) async =>
-      (await _database.query(
-          _followersTableName,
-          columns: ['telegram_id'],
-          where: 'telegram_id = ?',
-          whereArgs: [user.telegramId]
-      )).isNotEmpty;
-
-  Future<void> addNewUser(final Follower user) async =>
-      await _database.insert(
-        _followersTableName,
-        { 'telegram_id': user.telegramId, 'following_dev_id': null },
-        conflictAlgorithm: ConflictAlgorithm.ignore
+  void addNewDevOrIgnore(final Developer dev) =>
+      _database.execute(
+          'INSERT INTO $_devsTableName (id) VALUES (?)',
+          [dev.id]
       );
 
-  Future<bool> addNewDevOrIgnore(final Developer dev) async =>
-      (await _database.insert(_devsTableName, { 'id': dev.id })) != 0;
-
-  Future<void> loginUser(final Follower user) async {
-    if (!(await isUserExists(user))) {
-      await addNewUser(user);
+  void loginUser(final Follower user) {
+    if (!(isUserExists(user))) {
+      addNewUser(user);
     }
   }
-  
-  Future<Follower> startFollowing(
-      final Follower follower,
-      final Developer dev
-  ) async {
-    await addNewDevOrIgnore(dev);
 
-    await _database.insert(
-      _followersTableName,
-      { 'telegram_id': follower.telegramId, 'following_dev_id': dev.id },
+  Follower startFollowing(
+      final int followerTelegramId,
+      final Developer dev
+  ) {
+    addNewDevOrIgnore(dev);
+
+    _database.execute(
+        'INSERT INTO $_followersTableName (telegram_id, following_dev_id) VALUES (?, ?)',
+        [followerTelegramId, dev.id]
     );
 
-    return Follower(follower.telegramId, dev.id);
+    return Follower(followerTelegramId, dev.id);
   }
 
-  Future<Follower> unfollow(final Follower follower) async {
-    await _database.delete(
-      _followersTableName,
-      where: 'telegram_id = ? AND following_dev_id = ?',
-      whereArgs: [follower.telegramId, follower.followingDevId]
+  Follower unfollow(final Follower follower) {
+    _database.execute(
+        'DELETE FROM $_followersTableName WHERE telegram_id = ? AND following_dev_id = ?',
+        [follower.telegramId, follower.followingDevId]
     );
 
     return Follower(follower.telegramId, null);
@@ -77,14 +89,13 @@ class FollowersDao {
 }
 
 extension _FollowersDBExt on Database {
-  Future<void> initDB() async {
-    await execute('CREATE TABLE DEVELOPERS (id INTEGER NOT NULL PRIMARY KEY);');
-
-    await execute('''
-      CREATE TABLE FOLLOWERS (
+  Future<void> initDB() async => execute('''
+      PRAGMA foreign_keys = ON;
+      CREATE TABLE $_devsTableName (id INTEGER NOT NULL PRIMARY KEY);
+      CREATE TABLE $_followersTableName (
         telegram_id INTEGER NOT NULL,
-        FOREIGN KEY(following_dev_id) REFERENCES DEVELOPERS(id) ON DELETE CASCADE ON UPDATE CASCADE
+        following_dev_id INTEGER NULLABLE,
+        FOREIGN KEY (following_dev_id) REFERENCES $_devsTableName (id) ON UPDATE CASCADE ON DELETE CASCADE
       );
-    ''');
-  }
+  ''');
 }

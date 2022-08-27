@@ -1,7 +1,7 @@
 class Follower {
   final int telegramId;
   final int? followingDevId;
-  Follower(this.telegramId, this.followingDevId);
+  Follower(this.telegramId, [this.followingDevId]);
 
   @override
   operator ==(final Object other) =>

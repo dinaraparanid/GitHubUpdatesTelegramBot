@@ -1,8 +1,8 @@
-import 'package:git_hub_update_telegram_bot/extensions/all_ext.dart';
 import 'package:teledart/teledart.dart';
 import 'package:teledart/telegram.dart';
 
 import 'constants.dart';
+import '/extensions/teledart_ext.dart';
 import 'extensions/teledart_msg_ext.dart';
 
 class Bot {
@@ -22,17 +22,11 @@ class Bot {
   void _setCommands() {
     _teledart
         .onCommand('start')
-        .listen((message) =>
-        message.reply(
-            message.from!.let((user) =>
-            'Hello, ${user.first_name} ${user.last_name ?? ''}'
-            )
-        )
-    );
+        .listen(_teledart.login);
 
     _teledart
       .onCommand('follow')
-      .listen((message) => message.sendTODO()); // TODO: follow the dev
+      .listen(_teledart.startFollowing);
 
     _teledart
         .onCommand('unfollow')
