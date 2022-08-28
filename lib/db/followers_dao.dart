@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:git_hub_update_telegram_bot/extensions/all_ext.dart';
+import 'package:git_hub_update_telegram_bot/utils/extensions/all_ext.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '/db/developer.dart';
@@ -113,7 +113,7 @@ class FollowersDao {
     if (_isFollowerExists(follower)) {
       _database.execute(
           'DELETE FROM $_followersTableName WHERE telegram_id = ? AND following_dev_id = ?',
-          [follower.telegramId, follower.followingDevId.also(print)]
+          [follower.telegramId, follower.followingDevId]
       );
       return Follower(follower.telegramId, null);
     } else {

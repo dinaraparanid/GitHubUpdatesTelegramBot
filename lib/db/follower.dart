@@ -8,10 +8,11 @@ class Follower {
       identical(this, other) ||
       other is Follower &&
           runtimeType == other.runtimeType &&
+          telegramId == other.telegramId &&
           followingDevId == other.followingDevId;
 
   @override
-  get hashCode => followingDevId.hashCode;
+  get hashCode => Object.hashAll([telegramId, followingDevId]);
 
   @override
   toString() => 'Follower{telegramId: $telegramId, followingDevId: $followingDevId}';

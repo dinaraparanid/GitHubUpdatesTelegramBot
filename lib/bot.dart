@@ -2,8 +2,8 @@ import 'package:teledart/teledart.dart';
 import 'package:teledart/telegram.dart';
 
 import 'constants.dart';
-import '/extensions/teledart_ext.dart';
-import 'extensions/teledart_msg_ext.dart';
+import '/utils/extensions/teledart_ext.dart';
+import '/utils/extensions/teledart_msg_ext.dart';
 
 class Bot {
   Bot._();
@@ -34,11 +34,11 @@ class Bot {
 
     _teledart
         .onCommand('projects')
-        .listen((message) => message.sendTODO()); // TODO: show all dev's projects
+        .listen(_teledart.showProjects);
 
     _teledart
         .onCommand('project_info')
-        .listen((message) => message.sendTODO()); // TODO: show project info
+        .listen(_teledart.showProjectInfo);
 
     final notCommandsRegex = RegExp('^(?!start|follow|unfollow|projects|project_info).*\$');
 
