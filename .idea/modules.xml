@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/git_hub_update_telegram_bot.iml" filepath="$PROJECT_DIR$/git_hub_update_telegram_bot.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/git_hub_update_telegram_bot2.iml" filepath="$PROJECT_DIR$/.idea/git_hub_update_telegram_bot2.iml" />
     </modules>
   </component>
 </project>

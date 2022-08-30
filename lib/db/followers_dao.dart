@@ -50,15 +50,15 @@ class FollowersDao {
   bool _isFollowerExists(final Follower follower) =>
       _database
           .select(
-            'SELECT telegram_id FROM $_followersTableName WHERE telegram_id = ? AND following_dev_id = ?',
-            [follower.telegramId, follower.followingDevId]
+            'SELECT telegram_id FROM $_followersTableName WHERE telegram_id = ? AND following_dev = ?',
+            [follower.telegramId, follower.followingDev?.name]
           )
           .isNotEmpty;
 
   Follower? _deleteNullFollower(final int followerId) {
     if (_isUserExists(followerId)) {
       _database.execute(
-          'DELETE FROM $_followersTableName WHERE telegram_id = ? AND following_dev_id IS NULL',
+          'DELETE FROM $_followersTableName WHERE telegram_id = ? AND following_dev IS NULL',
           [followerId]
       );
       return Follower(followerId, null);
@@ -74,8 +74,8 @@ class FollowersDao {
 
     if (!_isFollowerExists(user)) {
       _database.execute(
-          'INSERT INTO $_followersTableName (telegram_id, following_dev_id) VALUES (?, ?)',
-          [user.telegramId, user.followingDevId]
+          'INSERT INTO $_followersTableName (telegram_id, following_dev) VALUES (?, ?)',
+          [user.telegramId, user.followingDev?.name]
       );
 
       return true;
@@ -87,8 +87,8 @@ class FollowersDao {
   void addNewDevOrIgnore(final Developer dev) {
     try {
       _database.execute(
-          'INSERT INTO $_devsTableName (id) VALUES (?)',
-          [dev.id]
+          'INSERT INTO $_devsTableName (name) VALUES (?)',
+          [dev.name]
       );
     } catch(ignored) {
       // already exists
@@ -106,19 +106,45 @@ class FollowersDao {
       final Developer dev
   ) {
     addNewDevOrIgnore(dev);
-    return Follower(followerTelegramId, dev.id).takeIf(addNewUserOrIgnore);
+    return Follower(followerTelegramId, dev).takeIf(addNewUserOrIgnore);
   }
 
   Follower? unfollow(final Follower follower) {
     if (_isFollowerExists(follower)) {
       _database.execute(
-          'DELETE FROM $_followersTableName WHERE telegram_id = ? AND following_dev_id = ?',
-          [follower.telegramId, follower.followingDevId]
+          'DELETE FROM $_followersTableName WHERE telegram_id = ? AND following_dev = ?',
+          [follower.telegramId, follower.followingDev?.name]
       );
       return Follower(follower.telegramId, null);
     } else {
       return null;
     }
+  }
+
+  Map<int, List<Developer>> getFollowersWithDevs() {
+    final dict = <int, List<Developer>> {};
+
+    _database
+        .select(
+        '''
+          SELECT fl.telegram_id as follower, dev.name as dev
+          FROM $_followersTableName fl, $_devsTableName dev
+          WHERE dev.name = fl.following_dev
+        '''
+        )
+        .toList(growable: false)
+        .forEach((followerWithDev) {
+          final followerId = followerWithDev['follower'] as int;
+          final dev = followerWithDev['dev'] as String;
+
+          dict.update(
+              followerId,
+              (value) => value..add(Developer(dev)),
+              ifAbsent: () => List.empty(growable: true)
+          );
+        });
+
+    return dict;
   }
 }
 

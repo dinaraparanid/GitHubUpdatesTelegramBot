@@ -1,3 +1,4 @@
+import 'package:github/github.dart';
 import 'package:teledart/model.dart';
 import 'package:teledart/teledart.dart';
 
@@ -6,6 +7,7 @@ import '/db/follower.dart';
 import '/db/followers_dao.dart';
 import '/github/git_hub_fetcher.dart';
 import '/utils/extensions/all_ext.dart';
+import '/utils/extensions/isolate_ext.dart';
 import '/utils/extensions/stream_ext.dart';
 import '/utils/extensions/string_ext.dart';
 
@@ -38,7 +40,7 @@ extension TeleDartExt on TeleDart {
     return devUrl;
   }
 
-  Future<int?> _getDevIdOrSendError(
+  Future<String?> _getDevNameOrSendError(
       final TeleDartMessage message,
       { required final String command }
   ) async {
@@ -48,39 +50,33 @@ extension TeleDartExt on TeleDart {
       return null;
     }
 
-    final devId = await GitHubFetcher.instance.getDevId(devUrl);
-
-    if (devId == null) {
-      message.reply("Developer is not found. Please, try again...");
-    }
-
-    return devId;
+    return GitHubFetcher.instance.getDevName(devUrl);
   }
 
   Future<Follower?> startFollowing(final TeleDartMessage message) async {
-    final devId = await _getDevIdOrSendError(message, command: 'follow');
+    final devName = await _getDevNameOrSendError(message, command: 'follow');
 
-    if (devId == null) {
+    if (devName == null) {
       return null;
     }
 
     final followerId = message.from!.id;
     final follower = (await FollowersDao.instance)
-        .startFollowing(followerId, Developer(devId));
+        .startFollowing(followerId, Developer(devName));
 
     message.reply(follower == null ? 'You are already following this dev' : 'Success!');
     return follower;
   }
 
   Future<Follower?> unfollow(final TeleDartMessage message) async {
-    final devId = await _getDevIdOrSendError(message, command: 'unfollow');
+    final devName = await _getDevNameOrSendError(message, command: 'unfollow');
 
-    if (devId == null) {
+    if (devName == null) {
       return null;
     }
 
     final followerId = message.from!.id;
-    final oldFollower = Follower(followerId, devId);
+    final oldFollower = Follower(followerId, Developer(devName));
     final follower = (await FollowersDao.instance).unfollow(oldFollower);
 
     message.reply(follower == null ? 'You are not following this dev' : 'Stopped following');
@@ -155,4 +151,19 @@ Is private: ${repository.isPrivate}
     message.reply(response, disable_web_page_preview: true);
     return true;
   }
+
+  Future<void> launchFollowing() async =>
+    IsolateExt.runOnBackground((sendPort) async {
+      (await FollowersDao.instance)
+          .getFollowersWithDevs()
+          .forEach((follower, devs) {
+            devs.fold(
+                Future(() => List<Future<Release>>.empty()),
+                (final Future<List<Future<Release>>> prev, dev) async =>
+                (await prev)..addAll(await GitHubFetcher.instance.checkForDevUpdates(dev))
+            );
+
+            // TODO
+          })                                                         ;
+    });
 }

@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import '/utils/extensions/all_ext.dart';
 import '/utils/extensions/iterable_ext.dart';
 import '../pair.dart';
 
@@ -35,6 +34,9 @@ extension StreamExt<T> on Stream<T> {
     final list = await toList();
     return list.zip(Iterable.generate(list.length, (ind) => ind));
   }
+
+  Future<List<T>> whereAsync(Future<bool> Function(T) test) async =>
+      await (await toList()).whereAsync(test);
 }
 
 extension ZippedIterExt<F, S> on Stream<Pair<F, S>> {

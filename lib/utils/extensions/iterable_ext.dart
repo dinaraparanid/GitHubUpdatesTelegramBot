@@ -23,6 +23,19 @@ extension IterExt<T> on Iterable<T> {
   }
 
   List<Pair<T, int>> enumerate() => zip(Iterable.generate(length, (ind) => ind));
+
+  Future<List<T>> whereAsync(Future<bool> Function(T element) test) async {
+    final result = <T>[];
+    final list = toList(growable: false);
+
+    for (final elem in list) {
+      if (await test(elem)) {
+        result.add(elem);
+      }
+    }
+
+    return result;
+  }
 }
 
 extension ZippedIterExt<F, S> on Iterable<Pair<F, S>> {

@@ -1,7 +1,12 @@
+import '/db/developer.dart';
+
 class Follower {
   final int telegramId;
-  final int? followingDevId;
-  Follower(this.telegramId, [this.followingDevId]);
+  final Developer? followingDev;
+
+  Follower(this.telegramId, [this.followingDev]);
+  Follower.byDevName(final int telegramId, final String followingDevName) :
+        this(telegramId, Developer(followingDevName));
 
   @override
   operator ==(final Object other) =>
@@ -9,11 +14,11 @@ class Follower {
       other is Follower &&
           runtimeType == other.runtimeType &&
           telegramId == other.telegramId &&
-          followingDevId == other.followingDevId;
+          followingDev == other.followingDev;
 
   @override
-  get hashCode => Object.hashAll([telegramId, followingDevId]);
+  get hashCode => Object.hashAll([telegramId, followingDev]);
 
   @override
-  toString() => 'Follower{telegramId: $telegramId, followingDevId: $followingDevId}';
+  toString() => 'Follower{telegramId: $telegramId, followingDev: $followingDev}';
 }
