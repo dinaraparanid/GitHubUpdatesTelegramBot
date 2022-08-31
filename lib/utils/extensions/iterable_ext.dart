@@ -26,12 +26,31 @@ extension IterExt<T> on Iterable<T> {
 
   Future<List<T>> whereAsync(Future<bool> Function(T element) test) async {
     final result = <T>[];
-    final list = toList(growable: false);
 
-    for (final elem in list) {
+    for (final elem in this) {
       if (await test(elem)) {
         result.add(elem);
       }
+    }
+
+    return result;
+  }
+
+  Future<R> foldAsync<R>(R initialValue, Future<R> Function(R previous, T element) combine) async {
+    var result = initialValue;
+
+    for (final elem in this) {
+      result = await combine(result, elem);
+    }
+
+    return result;
+  }
+
+  Future<List<R>> mapAsync<R>(Future<R> Function(T element) toElement) async {
+    var result = <R>[];
+
+    for (final elem in this) {
+      result.add(await toElement(elem));
     }
 
     return result;

@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:isolate';
+
 import 'package:github/github.dart';
 import 'package:teledart/model.dart';
 import 'package:teledart/teledart.dart';
@@ -8,8 +11,10 @@ import '/db/followers_dao.dart';
 import '/github/git_hub_fetcher.dart';
 import '/utils/extensions/all_ext.dart';
 import '/utils/extensions/isolate_ext.dart';
+import '/utils/extensions/iterable_ext.dart';
 import '/utils/extensions/stream_ext.dart';
 import '/utils/extensions/string_ext.dart';
+import '/utils/pair.dart';
 
 extension TeleDartExt on TeleDart {
   Future<void> login(final TeleDartMessage message) async {
@@ -102,12 +107,10 @@ Description: ${repository.description.takeIfNotEmptyOrNone()}
         .asBroadcastStream()
         .enumerate())
         .let((projects) async {
-          await projects.fold(
-            Future(() => ''),
-            (final Future<String> previous, element) async {
-              final pair = element;
-              return '${await previous}${await pair.first}${pair.second != projects.length - 1 ? '----------------------------------------' : ''}\n';
-            }
+          await projects.foldAsync(
+            '',
+            (final String previous, pair) async =>
+              '$previous${await pair.first}${pair.second != projects.length - 1 ? '----------------------------------------' : ''}\n'
           ).then((response) => message.reply(
               response.length > 4096 ? '${response.substring(0, 4096 - 3)}...' : response,
               disable_web_page_preview: true,
@@ -152,18 +155,67 @@ Is private: ${repository.isPrivate}
     return true;
   }
 
-  Future<void> launchFollowing() async =>
-    IsolateExt.runOnBackground((sendPort) async {
-      (await FollowersDao.instance)
-          .getFollowersWithDevs()
-          .forEach((follower, devs) {
-            devs.fold(
-                Future(() => List<Future<Release>>.empty()),
-                (final Future<List<Future<Release>>> prev, dev) async =>
-                (await prev)..addAll(await GitHubFetcher.instance.checkForDevUpdates(dev))
-            );
+  Future<void> launchFollowing() async {
+    final fiveMinutes = Duration(minutes: 5);
 
-            // TODO
-          })                                                         ;
-    });
+    int follower = 0;
+    var releasesInfo = '';
+
+    final port = ReceivePort().also((port) => port.listen((message) {
+      final releases = message as List<Pair<int, String>>;
+
+      for (final pair in releases) {
+        follower = pair.first;
+        releasesInfo = pair.second;
+
+        releasesInfo.borderedByTelegramLen
+            .takeIf((it) => it.isNotEmpty)
+            ?.let((it) => sendMessage(follower, it, disable_web_page_preview: true));
+      }
+    }));
+
+    while (true) {
+      await IsolateExt.runOnBackgroundAsync<List<Pair<int, String>>>(port, _getNewReleases);
+      await Future.delayed(fiveMinutes);
+    }
+  }
+}
+
+Future<void> _getNewReleases(final SendPort port) async {
+  final result = <Pair<int, String>>[];
+
+  final followersWithDevs = (await FollowersDao.instance).getFollowersWithDevs().entries;
+
+  for (final entry in followersWithDevs) {
+    final follower = entry.key;
+    final devs = entry.value;
+
+    final releases = await devs.foldAsync(
+        <Release>[],
+        (final List<Release> prev, dev) async =>
+          prev..addAll(await GitHubFetcher.instance.checkForDevUpdates(dev))
+    );
+
+    final responses = await releases.mapAsync((release) async => '''New release: ${release.htmlUrl?.removeFirst('https://github.com/').split('/')[1] ?? ''} ${release.name ?? 'Unknown release'}
+${release.htmlUrl ?? release.url ?? release.uploadUrl ?? 'No url'}
+Created at: ${release.publishedAt ?? 'Unknown'}
+Is prerelease: ${release.isPrerelease ?? 'Unknown'}
+Description: ${release.description ?? 'No description provided...'}
+''');
+
+    final enumerated = responses.enumerate();
+
+    final followerWithReleases = Pair(
+      follower,
+      await enumerated.foldAsync(
+        '',
+        (final String previous, pair) async =>
+          '$previous${pair.first}${pair.second != enumerated.length - 1 ? '----------------------------------------\n' : ''}'
+      )
+    );
+
+    result.add(followerWithReleases);
+  }
+
+  port.send(result);
 }

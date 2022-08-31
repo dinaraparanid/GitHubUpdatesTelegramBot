@@ -1,10 +1,10 @@
 import 'dart:io';
 
-import 'package:git_hub_update_telegram_bot/utils/extensions/all_ext.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '/db/developer.dart';
 import '/db/follower.dart';
+import '/utils/extensions/all_ext.dart';
 
 const _databaseName = 'followers.db';
 const _devsTableName = 'Developers';
@@ -127,7 +127,7 @@ class FollowersDao {
     _database
         .select(
         '''
-          SELECT fl.telegram_id as follower, dev.name as dev
+          SELECT fl.telegram_id AS follower, dev.name AS developer
           FROM $_followersTableName fl, $_devsTableName dev
           WHERE dev.name = fl.following_dev
         '''
@@ -135,12 +135,12 @@ class FollowersDao {
         .toList(growable: false)
         .forEach((followerWithDev) {
           final followerId = followerWithDev['follower'] as int;
-          final dev = followerWithDev['dev'] as String;
+          final dev = Developer(followerWithDev['developer'] as String);
 
           dict.update(
               followerId,
-              (value) => value..add(Developer(dev)),
-              ifAbsent: () => List.empty(growable: true)
+              (value) => value..add(dev),
+              ifAbsent: () => [dev]
           );
         });
 
@@ -151,11 +151,11 @@ class FollowersDao {
 extension _FollowersDBExt on Database {
   Future<void> initDB() async => execute('''
       PRAGMA foreign_keys = ON;
-      CREATE TABLE $_devsTableName (id INTEGER NOT NULL PRIMARY KEY);
+      CREATE TABLE $_devsTableName (name TEXT NOT NULL PRIMARY KEY);
       CREATE TABLE $_followersTableName (
         telegram_id INTEGER NOT NULL,
-        following_dev_id INTEGER NULLABLE,
-        FOREIGN KEY (following_dev_id) REFERENCES $_devsTableName (id) ON UPDATE CASCADE ON DELETE CASCADE
+        following_dev TEXT NULLABLE,
+        FOREIGN KEY (following_dev) REFERENCES $_devsTableName (name) ON UPDATE CASCADE ON DELETE CASCADE
       );
   ''');
 }

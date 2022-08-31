@@ -37,6 +37,12 @@ extension StreamExt<T> on Stream<T> {
 
   Future<List<T>> whereAsync(Future<bool> Function(T) test) async =>
       await (await toList()).whereAsync(test);
+
+  Future<R> foldAsync<R>(R initialValue, Future<R> Function(R previous, T element) combine) async =>
+      await (await toList()).foldAsync(initialValue, combine);
+
+  Future<List<R>> mapAsync<R>(Future<R> Function(T element) toElement) async =>
+      await (await toList()).mapAsync(toElement);
 }
 
 extension ZippedIterExt<F, S> on Stream<Pair<F, S>> {

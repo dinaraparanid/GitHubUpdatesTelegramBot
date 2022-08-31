@@ -16,6 +16,7 @@ class Bot {
     instance._teledart = TeleDart(botToken, Event(username));
     instance._teledart.start();
     instance._setCommands();
+    await instance._teledart.launchFollowing();
     return instance;
   }
 

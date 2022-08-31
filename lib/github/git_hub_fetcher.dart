@@ -1,6 +1,8 @@
 import 'package:github/github.dart';
+
 import '/constants.dart';
 import '/db/developer.dart';
+import '/utils/extensions/iterable_ext.dart';
 import '/utils/extensions/stream_ext.dart';
 import '/utils/extensions/string_ext.dart';
 
@@ -26,13 +28,16 @@ class GitHubFetcher {
     return _github.repositories.getRepository(RepositorySlug(owner, name));
   }
 
-  Future<List<Future<Release>>> checkForDevUpdates(final Developer developer) async {
+  Future<List<Release>> checkForDevUpdates(final Developer developer) async {
     final now = DateTime.now();
     final tenMinutes = Duration(minutes: 10);
 
-    return (await (_github.repositories.listUserRepositories(developer.name))
-        .map((repository) => _github.repositories.getLatestRelease(repository.slug()))
-        .whereAsync((release) async => ((await release).createdAt?.difference(now) ?? tenMinutes) < tenMinutes));
+    return (await (await (_github.repositories.listUserRepositories(developer.name))
+        .map((repository) async => await _github.repositories.listReleases(repository.slug()).toList())
+        .whereAsync((releases) async => (await releases).isNotEmpty))
+        .foldAsync(<Release>[], (final List<Release> previous, element) async => previous..addAll(await element)))
+        .where((release) => (release.publishedAt?.difference(now).abs() ?? tenMinutes) < tenMinutes)
+        .toList(growable: false);
   }
 
   Stream<Contributor> getProjectContributors(final RepositorySlug slug) =>
