@@ -1,3 +1,3 @@
 # GitHub Updates Telegram Bot
 
-Telegram bot for GitHub developer's updates. 
+Telegram bot for GitHub developers' updates. 
