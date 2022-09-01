@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:isolate';
 
 import 'package:github/github.dart';
@@ -14,18 +13,22 @@ import '/utils/extensions/isolate_ext.dart';
 import '/utils/extensions/iterable_ext.dart';
 import '/utils/extensions/stream_ext.dart';
 import '/utils/extensions/string_ext.dart';
+import '/utils/extensions/teledart_msg_ext.dart';
 import '/utils/pair.dart';
 
 extension TeleDartExt on TeleDart {
   Future<void> login(final TeleDartMessage message) async {
+    (await FollowersDao.instance)
+        .addNewUserOrIgnore(Follower(message.from!.id));
+
     message.reply(
         message.from!.let((user) =>
           'Hello, ${user.first_name} ${user.last_name ?? ''}'
         )
     );
 
-    (await FollowersDao.instance)
-        .addNewUserOrIgnore(Follower(message.from!.id));
+    await Future.delayed(Duration(seconds: 1));
+    message.sendHelp();
   }
 
   String? _getDevUrlOrSendError(
@@ -148,7 +151,7 @@ Contributors:
     }
 Last update: ${repository.updatedAt ?? 'Unknown'}
 Stars: ${repository.stargazersCount}
-Is private: ${repository.isPrivate}
+Last release: ${(await GitHubFetcher.instance.getLastRelease(repository.slug()))?.htmlUrl ?? 'None'}
 ''';
     
     message.reply(response, disable_web_page_preview: true);

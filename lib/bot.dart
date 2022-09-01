@@ -41,7 +41,11 @@ class Bot {
         .onCommand('project_info')
         .listen(_teledart.showProjectInfo);
 
-    final notCommandsRegex = RegExp('^(?!start|follow|unfollow|projects|project_info).*\$');
+    _teledart
+        .onCommand('help')
+        .listen((message) => message.sendHelp());
+
+    final notCommandsRegex = RegExp('^(?!start|follow|unfollow|projects|project_info|help).*\$');
 
     _teledart
       .onMessage(entityType: 'bot_command', keyword: notCommandsRegex)

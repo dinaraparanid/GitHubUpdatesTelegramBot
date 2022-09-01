@@ -1,3 +1,4 @@
+import 'package:git_hub_update_telegram_bot/utils/extensions/all_ext.dart';
 import 'package:github/github.dart';
 
 import '/constants.dart';
@@ -42,4 +43,13 @@ class GitHubFetcher {
 
   Stream<Contributor> getProjectContributors(final RepositorySlug slug) =>
       _github.repositories.listContributors(slug);
+
+  Future<Release?> getLastRelease(final RepositorySlug slug) async {
+    final nullTime = DateTime.fromMicrosecondsSinceEpoch(0);
+
+    return (await _github.repositories.listReleases(slug).toList())
+        .takeIf((it) => it.isNotEmpty)
+        ?.also((it) => it.sort((r1, r2) => r1.publishedAt?.compareTo(r2.publishedAt ?? nullTime) ?? 0))
+        .last;
+  }
 }
