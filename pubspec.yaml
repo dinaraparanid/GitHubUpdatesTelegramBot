@@ -10,7 +10,7 @@ dependencies:
   path: ^1.8.0
   teledart: ^0.3.4
   http: ^0.13.5
-  sqlite3: 1.7.0
+  sqlite3: ^1.9.1
   github: ^9.4.0
 
 dev_dependencies:
