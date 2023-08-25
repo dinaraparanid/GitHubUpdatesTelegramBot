@@ -1,10 +1,11 @@
 import '/db/developer.dart';
 
-class Follower {
+final class Follower {
   final int telegramId;
   final Developer? followingDev;
 
   Follower(this.telegramId, [this.followingDev]);
+
   Follower.byDevName(final int telegramId, final String followingDevName) :
         this(telegramId, Developer(followingDevName));
 

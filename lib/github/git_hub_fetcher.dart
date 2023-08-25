@@ -1,8 +1,8 @@
+import 'package:dartz/dartz.dart';
 import 'package:git_hub_update_telegram_bot/utils/extensions/all_ext.dart';
 import 'package:github/github.dart';
 
 import '/constants.dart';
-import '/db/developer.dart';
 import '/utils/extensions/iterable_ext.dart';
 import '/utils/extensions/stream_ext.dart';
 import '/utils/extensions/string_ext.dart';
@@ -17,23 +17,56 @@ class GitHubFetcher {
 
   String getDevName(final String url) => url.removeFirst('https://github.com/');
 
-  Stream<Repository> getDevProjects(final String url) {
-    final name = url.removeFirst('https://github.com/');
-    return _github.repositories.listUserRepositories(name);
+  Future<bool> isDevExists(final String developerName) {
+    return _github.users.isUser(developerName);
   }
 
-  Future<Repository> getProject(final String url) {
+  NotFound get _developerNotFoundError =>
+      NotFound(_github, "Developer is not found");
+
+  NotFound _repositoryNotFoundError(final String repo) =>
+    NotFound(_github, 'Repository `$repo` is not found');
+
+  NotFound _noRepositoriesError(final String devName) =>
+      NotFound(_github, 'Developer `$devName` does not have any repositories');
+
+  Future<Either<Stream<Repository>, GitHubError>> getDevProjects(final String url) async {
+    final name = getDevName(url);
+
+    if (!await isDevExists(name)) {
+      return Right(_developerNotFoundError);
+    }
+
+    // TODO: No repositories fix
+    return Left(_github.repositories.listUserRepositories(name));
+  }
+
+  Future<Either<Repository, GitHubError>> getProject(final String url) async {
     final data = url.removeFirst('https://github.com/').split('/');
     final owner = data.first;
-    final name = data.last;
-    return _github.repositories.getRepository(RepositorySlug(owner, name));
+    final repo = data.last;
+
+    if (!await isDevExists(owner)) {
+      return Right(_developerNotFoundError);
+    }
+
+    try {
+      return Left(
+          await _github
+              .repositories
+              .getRepository(RepositorySlug(owner, repo)
+          )
+      );
+    } on GitHubError {
+      return Right(_repositoryNotFoundError(repo));
+    }
   }
 
-  Future<List<Release>> checkForDevUpdates(final Developer developer) async {
+  Future<List<Release>> checkForDevUpdates({required final String devName}) async {
     final now = DateTime.now();
     final tenMinutes = Duration(minutes: 10);
 
-    return (await (await (_github.repositories.listUserRepositories(developer.name))
+    return (await (await (_github.repositories.listUserRepositories(devName))
         .map((repository) async => await _github.repositories.listReleases(repository.slug()).toList())
         .whereAsync((releases) async => (await releases).isNotEmpty))
         .foldAsync(<Release>[], (final List<Release> previous, element) async => previous..addAll(await element)))

@@ -1,10 +1,9 @@
 name: git_hub_update_telegram_bot
 description: Telegram bot for GitHub developer's updates.
 version: 1.0.0
-# homepage: https://www.example.com
 
 environment:
-  sdk: '>=2.16.0 <3.0.0'
+  sdk: '>=3.1.0 <4.0.0'
 
 dependencies:
   path: ^1.8.0
@@ -12,6 +11,7 @@ dependencies:
   http: ^0.13.5
   sqlite3: ^1.9.1
   github: ^9.4.0
+  dartz: ^0.10.1
 
 dev_dependencies:
   lints: ^2.0.0

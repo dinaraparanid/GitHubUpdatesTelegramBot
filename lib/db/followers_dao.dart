@@ -10,7 +10,7 @@ const _databaseName = 'followers.db';
 const _devsTableName = 'Developers';
 const _followersTableName = 'Followers';
 
-class FollowersDao {
+final class FollowersDao {
   FollowersDao._();
 
   static FollowersDao? _instance;
