@@ -7,7 +7,7 @@ import '/utils/extensions/iterable_ext.dart';
 import '/utils/extensions/stream_ext.dart';
 import '/utils/extensions/string_ext.dart';
 
-class GitHubFetcher {
+final class GitHubFetcher {
   GitHubFetcher._();
 
   static final _instance = GitHubFetcher._();
@@ -37,8 +37,12 @@ class GitHubFetcher {
       return Right(_developerNotFoundError);
     }
 
-    // TODO: No repositories fix
-    return Left(_github.repositories.listUserRepositories(name));
+    try {
+      final reps = _github.repositories.listUserRepositories(name);
+      return Left(reps);
+    } on Exception {
+      return Right(_noRepositoriesError(name));
+    }
   }
 
   Future<Either<Repository, GitHubError>> getProject(final String url) async {
@@ -65,6 +69,8 @@ class GitHubFetcher {
   Future<List<Release>> checkForDevUpdates({required final String devName}) async {
     final now = DateTime.now();
     final tenMinutes = Duration(minutes: 10);
+    
+    print(devName);
 
     return (await (await (_github.repositories.listUserRepositories(devName))
         .map((repository) async => await _github.repositories.listReleases(repository.slug()).toList())

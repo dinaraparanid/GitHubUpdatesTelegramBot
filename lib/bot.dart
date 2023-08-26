@@ -5,7 +5,7 @@ import 'constants.dart';
 import '/utils/extensions/teledart_ext.dart';
 import '/utils/extensions/teledart_msg_ext.dart';
 
-class Bot {
+final class Bot {
   Bot._();
   late final TeleDart _teledart;
   static Bot? _instance;

@@ -17,5 +17,5 @@ You can control me with the following commands:
 /project_info https://github.com/your_developer/his_project - Shows the detailed information about the repository (description, license, last update, contributors, etc.)
 
 If you have any difficulties or you've found a bug, please, contact the developer: https://t.me/paranid5
-  ''', disable_web_page_preview: true);
+  ''', disableWebPagePreview: true);
 }

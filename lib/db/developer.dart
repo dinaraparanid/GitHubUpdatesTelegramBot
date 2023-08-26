@@ -1,4 +1,4 @@
-class Developer {
+final class Developer {
   final String name;
   Developer(this.name);
 

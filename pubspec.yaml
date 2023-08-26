@@ -7,10 +7,10 @@ environment:
 
 dependencies:
   path: ^1.8.0
-  teledart: ^0.3.4
+  teledart: ^0.5.6
   http: ^0.13.5
-  sqlite3: ^1.9.1
-  github: ^9.4.0
+  sqlite3: ^2.1.0
+  github: ^9.17.0
   dartz: ^0.10.1
 
 dev_dependencies:

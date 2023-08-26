@@ -309,10 +309,10 @@ packages:
     dependency: "direct main"
     description:
       name: sqlite3
-      sha256: "281b672749af2edf259fc801f0fcba092257425bcd32a0ce1c8237130bc934c7"
+      sha256: db65233e6b99e99b2548932f55a987961bc06d82a31a0665451fa0b4fff4c3fb
       url: "https://pub.dev"
     source: hosted
-    version: "1.11.2"
+    version: "2.1.0"
   stack_trace:
     dependency: transitive
     description:
@@ -341,10 +341,10 @@ packages:
     dependency: "direct main"
     description:
       name: teledart
-      sha256: "41f0b97069f59443ca1b2ca9e7f0b9fad34af02f92b2ee0ff80285cc9e50b0ab"
+      sha256: "3ff1768b175048aab9b657aac014075a7b5cd62df448080140bf9ea0ba9a0691"
       url: "https://pub.dev"
     source: hosted
-    version: "0.3.4"
+    version: "0.5.6"
   term_glyph:
     dependency: transitive
     description:

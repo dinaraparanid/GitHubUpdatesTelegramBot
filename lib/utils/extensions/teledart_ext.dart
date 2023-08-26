@@ -23,7 +23,7 @@ extension TeleDartExt on TeleDart {
 
     message.reply(
         message.from!.let((user) =>
-          'Hello, ${user.first_name} ${user.last_name ?? ''}'
+          'Hello, ${user.firstName} ${user.lastName ?? ''}'
         )
     );
 
@@ -126,7 +126,7 @@ extension TeleDartExt on TeleDart {
             )
             .then((response) => message.reply(
               response.length > 4096 ? '${response.substring(0, 4096 - 3)}...' : response,
-              disable_web_page_preview: true,
+              disableWebPagePreview: true,
             ));
 
         return true;
@@ -172,7 +172,7 @@ extension TeleDartExt on TeleDart {
         Last release: ${(await GitHubFetcher.instance.getLastRelease(repository.slug()))?.htmlUrl ?? 'None'}
         '''.trimmedIndent;
 
-        message.reply(response, disable_web_page_preview: true);
+        message.reply(response, disableWebPagePreview: true);
         return true;
     }
 
@@ -180,21 +180,19 @@ extension TeleDartExt on TeleDart {
   }
 
   Future<void> launchFollowing() async {
-    final fiveMinutes = Duration(minutes: 5);
-
     final port = ReceivePort().also((port) => port.listen((message) {
       final releases = message as List<(int, String)>;
 
       for (final (follower, releasesInfo) in releases) {
         releasesInfo.borderedByTelegramLen
             .takeIf((it) => it.isNotEmpty)
-            ?.let((it) => sendMessage(follower, it, disable_web_page_preview: true));
+            ?.let((it) => sendMessage(follower, it, disableWebPagePreview: true));
       }
     }));
 
     while (true) {
       await IsolateExt.runOnBackgroundAsync<List<(int, String)>>(port, _getNewReleases);
-      await Future.delayed(fiveMinutes);
+      await Future.delayed(Duration(minutes: 5));
     }
   }
 }
@@ -212,6 +210,8 @@ Future<void> _getNewReleases(final SendPort port) async {
         (final List<Release> prev, dev) async =>
           prev..addAll(await GitHubFetcher.instance.checkForDevUpdates(devName: dev.name))
     );
+    
+    print(releases);
 
     final responses = await releases.mapAsync((release) async =>
       '''
@@ -220,6 +220,7 @@ Future<void> _getNewReleases(final SendPort port) async {
       Created at: ${release.publishedAt ?? 'Unknown'}
       Is pre-release: ${release.isPrerelease ?? 'Unknown'}
       Description: ${release.description ?? 'No description provided...'}
+      Body: ${release.body ?? 'No body provided'}
       '''.trimmedIndent
     );
 
